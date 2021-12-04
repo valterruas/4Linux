@@ -1,0 +1,93 @@
+###ROLE DOCKER
+---
+# tasks file for docker
+- name: Criando Ambiente Docker - BlueGreen
+  hosts: docker
+  tasks:
+    - name: Python-pip 
+      apt:
+        name: python-pip
+        state: present
+        update_cache: yes
+
+    - pip:
+        name: docker-py
+
+    - name: Ambiente Blue
+      docker_container: 
+        name: blue
+        image: httpd
+        state: started
+        volumes:
+        - /root/blue/:/usr/local/apache2/htdocs/
+
+    - name: Ambiente Green
+      docker_container:
+        name: green
+        image: httpd
+        state: started
+        volumes:
+        - /root/green/:/usr/local/apache2/htdocs/
+        
+        
+        ###ROLE GREEN
+---
+# tasks file for bluegreen
+- name: Provisionando Aplicação - BlueGreen
+  hosts: docker
+  tasks:
+    - name: Verificando Ambiente
+      stat:
+        path: /etc/nginx/sites-enabled/green.conf
+      register: ambiente
+
+    - name: Copia Index.html - Green
+      copy:
+        src: /var/lib/jenkins/workspace/BlueGreen/index.html
+        dest: /root/green/index.html
+      when: ambiente.stat.exists == False
+
+    - name: Copia Index.html - Blue
+      copy:
+        src: /var/lib/jenkins/workspace/BlueGreen/index.html
+        dest: /root/blue/index.html
+      when: ambiente.stat.exists == True
+
+    - name: Coletando IP do Ambiente GREEN
+      command: docker exec green hostname -I
+      register: ipgreen
+      when: ambiente.stat.exists == False
+
+    - name: Coletando IP do Ambiente BLUE
+      command: docker exec blue hostname -I
+      register: ipblue
+      when: ambiente.stat.exists == True
+
+    - name: Copia Virtual Host - Green
+      template:
+        src: /roles/bluegreen/files/green.conf
+        dest: /etc/nginx/sites-enabled/green.conf
+      when: ambiente.stat.exists == False
+
+    - name: Copia Virtual Host - Blue
+      template:
+        src: /roles/bluegreen/files/blue.conf
+        dest: /etc/nginx/sites-enabled/blue.conf
+      when: ambiente.stat.exists == True
+
+   - name: Removendo o Ambiente Blue 
+     file:
+       path: /etc/nginx/sites-enabled/blue.conf
+       state: absent
+     when: ambiente.stat.exists == False
+
+   - name: Removendo o Ambiente Green 
+     file:
+       path: /etc/nginx/sites-enabled/green.conf
+       state: absent
+     when: ambiente.stat.exists == True
+
+   - name: Reinicia o NGINX
+     service:
+       name: nginx
+       state: restarted

@@ -1,0 +1,51 @@
+####################################
+     Considerações Iniciais
+####################################
+
+Openshift é uma ferramenta da RedHat e é pago, utilizaremos a solução OpenShift Origin que é a versão gratuita
+
+Pré requisito é o Docker 1.13 ou anterior e Openshift 3.13, versões superiores não funciona na data de hoje 14/2/2019. Se for utilizar o vagrant precisa estar na versão 2.2 ou superior e VirtualBox acima do 5.2
+
+Sempre respeitar a particularidade de rede abaixo:
+192.168.x.x - Rede entre nós
+172.16.x.x - Rede dos serviços do OpenShift
+10.x.x.x - Rede entre os Pods
+
+Openshift sempre usa a primeira interface de rede do server, e em caso de virtualização a rede não pode estar no modo NAT e sim no modo bridge.
+
+Se tiver problema na instalação, realizar a desinstalação e tentar novamente. Nunca seguir com um erro, pois durante a instalação o Openshift cria diversas variaveis que dão problemas se você não realizar a desinstalação completa primeira antes de fazer a nova instalação.
+
+####################################
+               FIM
+####################################
+
+#Dar um git clone no repo https://github.com/valterruas/openshift-3.11-vagrant
+#Subir a infra pelo Vagrant
+
+# Abaixo as 3 principais playbooks
+/root/openshift-ansible/playbooks/prerequisites.yml - Checa todos os pre-requisitos 
+/root/openshift-ansible/playbooks/deploy_cluster.yml - Faz o Deploy do Cluster
+/root/openshift-ansible/playbooks/adhoc/uninstall.yml - Caso dê algum erro, na instalação rodar essa playbook para remover todas as variaveis que ficam de sujeira antes de rodar uma nova instalação
+
+
+#Editar o arquivo hosts da maquina hospedeira e adicionar o host "master.okd.os" apontando para o IP 192.168.1.10
+
+# Acessar via browser o endereço https://master.okd.os:8443/ 
+# No primeiro acesso você deve informar um usuário e senha que serão criados automaticamente no primeiro acesso.
+
+# Executar os comandos abaixo para autorizar todos os usuários do OKS fazer deploy de imagens do DockerRegistry
+oc login -u system:admin
+oc adm policy add-scc-to-user anyuid -z default
+oc adm policy add-scc-to-user anyuid system:serviceaccount:opsmx:tiller
+oc adm policy add-scc-to-group anyuid system:authenticated
+
+# Comandos basicos para criar um projeto, entrar dentro dele e criar uma aplicação via CLI
+oc new-project devops
+oc project devops 
+oc new-app centos/ruby-25-centos7~https://github.com/gpolicante/python-openshift.git
+
+# Criando um projeto BlueGreen
+oc new-project bluegreen --display-name="Blue Green Deployment" --description="Blue Green Deployments"
+oc new-app https://github.com/devops-with-openshift/bluegreen#master --name=blue
+oc new-app https://github.com/devops-with-openshift/bluegreen#green  --name=green
+oc expose service blue --name=bluegreen

@@ -1,0 +1,11 @@
+---
+# tasks file for asa_noturna
+- name: ROLE PARA DEPLOY
+  hosts: all
+  vars:
+    - texto: "Quem bebe vive menos. Menos triste, menos preocupado..."
+  tasks:
+    - include: prereqDebian.yml
+    - include: prereqRedHat.yml
+    - include: install_nginx.yml
+    - include: deploy.yml

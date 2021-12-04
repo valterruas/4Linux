@@ -1,0 +1,12 @@
+- name: Parando HTTPD - LIKE RED HAT
+  service:
+    name: httpd
+    state: stopped
+  ignore_errors: True
+  when: ansible_os_family == "RedHat"
+
+- name: Removendo HTTPD - LIKE RED HAT
+  yum:
+    name: httpd*
+    state: absent
+  when: ansible_os_family == "RedHat" 

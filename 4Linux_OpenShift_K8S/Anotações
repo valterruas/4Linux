@@ -1,0 +1,15 @@
+## Treinamento com Gabriel Policante
+
+##Criar Dockerfile atraves de uma imagem.
+docker pull centurylink/dockerfile-from-image
+
+##Vagrantfile contem as configurações do laboratorio montado em sala de aula
+##Dcokerfile possui os comandos para criar uma imagem com apache instalado, e importar um arquivo html.
+
+Tabela de Kubernetes
+https://kubernetes.io/docs/setup/pick-right-solution/#table-of-solutions
+
+
+kubeadm = provider cluster
+kubelet = é o api server
+kubectl = binario 

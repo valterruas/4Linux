@@ -1,0 +1,78 @@
+version: '3.3'
+
+services: 
+ 
+ traefik:
+  image: traefik
+  command:
+   - "--web" 
+   - "--docker"
+   - "--docker.swarmmode"
+  ports:
+   - target: 80
+     published: 80
+     protocol: tcp 
+   - 8080:8080 
+  volumes:
+   - /var/run/docker.sock:/var/run/docker.sock
+  deploy:
+   placement:
+    constraints:
+     - node.role == manager
+   
+
+
+ site:
+  image: valterruas/ivar_site
+  depends_on: 
+   - redis 
+  deploy: 
+   labels:
+    - "traefik.port=80"
+    - "traefik.backend.healthcheck.port=80"
+    - "traefik.frontend.rule=Host:ivar.dexter.com.br"
+    - "traefik.backend.healthcheck.interval=2s"
+   replicas: 5
+   resources:
+    limits:
+     cpus: '0.5'
+     memory: '350M'
+    reservations:
+     cpus: '0.1'
+     memory: '100M'
+  volumes:
+   - ivar:/usr/local/apache2/htdocs/
+
+
+
+ redis:
+  image: redis 
+  deploy:
+   replicas: 1 
+   placement:
+    constraints:
+     - node.role == manager
+
+ 
+ monitoracao:
+  image: google/cadvisor:latest
+  ports: 
+   - 8585:8080
+  deploy:
+   mode: global 
+   resources:
+    limits:
+     cpus: '0.50'
+     memory: 512M
+  volumes: 
+   - /:/rootfs:ro
+   - /var/run:/var/run:ro
+   - /sys:/sys:ro
+   - /var/lib/docker/:/var/lib/docker:ro
+   - /dev/disk/:/dev/disk:ro
+
+
+
+volumes:
+ ivar:
+

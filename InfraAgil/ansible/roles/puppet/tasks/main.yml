@@ -1,0 +1,11 @@
+---
+# Files for Puppet
+- name: ROLE PARA DEPLOY
+  hosts: all
+  tasks:
+    - include: prerequisitos.yml
+    - include: install_centos.yml
+      when: ansible_distribution == "CentOS"
+    - include: install_debian.yml
+      when: ansible_distribution == "Ubuntu"
+

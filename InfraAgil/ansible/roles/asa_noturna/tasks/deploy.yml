@@ -1,0 +1,9 @@
+- name: Pagina Web
+  template:
+    src: ../templates/index.html
+    dest: /var/www/html/index.html
+
+- name: Adicionar uma imagem
+  get_url:
+    url: https://i2.wp.com/codeblog.dotsandbrackets.com/wp-content/uploads/2017/09/ansible-vagrant.jpg
+    dest: /var/www/html/imagem.jpg

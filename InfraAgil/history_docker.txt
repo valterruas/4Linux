@@ -1,0 +1,216 @@
+    1  clear 
+    2  apt update
+    3  clear
+    4  exit
+    5  clear
+    6  apt update
+    7  apt install python
+    8  cd /tmp
+    9  ls
+   10  vi /etc/passwd
+   11  cat /etc/hosts
+   12  ping devops
+   13  ping devops.salas4linux.com.br
+   14  ping devops
+   15  ping automation
+   16  ping devops.salas4linux.com.br
+   17  clear
+   18  cd /var/www/html/
+   19  ls
+   20  vi index.html 
+   21  clear
+   22  /etc/init.d/apache2 status
+   23  /etc/init.d/apache2 start
+   24  /etc/init.d/apache2 stop
+   25  cat /var/www/html/index.php
+   26  /etc/init.d/apache2 status
+   27  celar
+   28  cls
+   29  clear
+   30  vim
+   31  exit
+   32  clear
+   33  puppet --version
+   34  clear
+   35  puppet agent -t
+   36  puppet agent -t --server devops.salas4linux.com.br
+   37  clear
+   38  cd /etc/puppetlabs/puppet/
+   39  ls
+   40  cat puppet.conf 
+   41  puppet agent -t --server devops.salas4linux.com.br
+   42  cat puppet.conf 
+   43  puppet agent -t --server devops.salas4linux.com.br
+   44  tail -f /var/log/syslog 
+   45  vim puppet.conf 
+   46  tail -f /var/log/syslog 
+   47  vim puppet.conf 
+   48  tail -f /var/log/syslog 
+   49  puppet agent -t --server devops.salas4linux.com.br
+   50  services puppet status
+   51  service puppet status
+   52  service puppet restart
+   53  service puppet status
+   54  tailf /var/log/syslog 
+   55  docker --version
+   56  vi /etc/nginx/
+   57  docker ps
+   58  docker ps -a
+   59  uname -r
+   60  ps -aux
+   61  ps
+   62  docker run ls /etc
+   63  docker run debian ls /etc
+   64  docker ps -a
+   65  docker run --name gaviao_negro -it debian bash
+   66  docker ps -a
+   67  docker run --name mulher_gaviao -it debian bash
+   68  docker run --name mulher_gaviao -it centos bash
+   69  docker remove --name mulher_gaviao
+   70  docker rm --name mulher_gaviao
+   71  docker rm mulher_gaviao
+   72  docker run --name mulher_gaviao -it centos bash
+   73  docker ps
+   74  docker attach mulher_gaviao
+   75  docker ps
+   76  docker exec -it mulher_gaviao  ls /
+   77  docker -ps
+   78  docker ps
+   79  docker ps -a
+   80  docker ps -qa
+   81  docker system prune
+   82  docker images 
+   83  docker system pune
+   84  docker system prune
+   85  docker images 
+   86  docker pull alpine
+   87  docker search ubuntu
+   88  docker volume ls
+   89  docker volume create --name dcwomen
+   90  docker volume ls
+   91  cd /var/lib/docker/volumes/dcwomen/_data/
+   92  touch {arlequina,hera_venenosa,mulher_maravilha,supergirl}
+   93  ls
+   94  run -dti --name dcwomen -h womendc -v dcwomen:/root/pasta_womendc centos bash
+   95  docker -ps 
+   96  docker ps
+   97  docker run -dti --name dcwomen -h womendc -v dcwomen:/root/pasta_womendc centos bash
+   98  docker ps
+   99  docker attach dcwomen 
+  100  cd /
+  101  ls
+  102  docker attach dcwomen 
+  103  cat /var/lib/docker/volumes/dcwomen/_data/mulher_maravilha 
+  104  docker ps
+  105  mkdir superman
+  106  rm superman/
+  107  cd /root/
+  108  ls
+  109  mkdir superman
+  110  cd superman/
+  111  touch superman{1..10}
+  112  ls
+  113  cd ..
+  114  rm -rf superman/
+  115  mkdir supermen
+  116  cd supermen/
+  117  touch supermen{1..10}
+  118  ls
+  119  docker run -dti --name clark -h kent -v /root/supermen:/var/krypton debian bash
+  120  docker attach clark 
+  121  docker inspect clark
+  122  docker stats
+  123  docker run -d -p 8082:80 --name apache_server -h apache_server apache2
+  124  cd ..
+  125  docker run -d -p 8082:80 --name apache_server -h apache_server apache2
+  126  docker run -d -p 8082:80 --name apache_server -h apache_server httpd
+  127  docker ps
+  128  ip a
+  129  docker attach apache_server
+  130  docker ps
+  131  docker attach apache_server
+  132  docker start apache_server
+  133  docker ps
+  134  docker exec -ti apache_server bash
+  135  docker network create --subnet 10.0.0.0/16 dockerlan
+  136  docker network list
+  137  docker network ls
+  138  docker network ls -a
+  139  docker network ls --help
+  140  docker network ls -f
+  141  docker run -dit cliente_apache -h cliente_apache --ip 10.0.0.10 --net dockerlan debian bash
+  142  docker run -dit --name cliente_apache -h cliente_apache --ip 10.0.0.10 --net dockerlan debian bash
+  143  docker ps
+  144  docker network connect dockerlan apache_server 
+  145  docker inspect apache_server 
+  146  service docker status
+  147  docker stop --all
+  148  docker stop --help
+  149  docker stop *
+  150  docker attach -it cliente_apache 
+  151  docker attach cliente_apache 
+  152  docker ps
+  153  docker commit cliente_apache cliente_apache_curl_v1
+  154  docker images
+  155  docker stop $(docker ps -a)
+  156  docker ps
+  157  eixt
+  158  exit
+  159  curl -L https://github.com/docker/compose/releases/download/1.21.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+  160  ls -lh /usr/local/bin/docker-compose 
+  161  chmod +x /usr/local/bin/docker-compose 
+  162  mkdir
+  163  mkdir wordpress
+  164  cd wordpress/
+  165  vim docker-compose.yml
+  166  docker-compose up -d
+  167  ls
+  168  ls -al
+  169  vim docker-compose.yml
+  170  docker-compose up -d
+  171  vim docker-compose.yml
+  172  docker-compose up -d
+  173  w
+  174  vim docker-compose.yml
+  175  docker-compose up -d
+  176  vim docker-compose.yml
+  177  docker-compose up -d
+  178  vim docker-compose.yml
+  179  docker-compose up -d
+  180  vim docker-compose.yml
+  181  docker-compose up -d
+  182  docker ps
+  183  docker start wordpress_mysql_server_1 
+  184  docker start wordpress_wordpress_1 
+  185  docker ps
+  186  docker run -d --name portainer -p 8081:9000 -v /var/run/docker.sock:/var/run/socker.sock portainer/portainer
+  187  docker ps
+  188  docker kill portainer 
+  189  docker rm -f portainer 
+  190  docker run -d --name portainer -p 8081:9000 -v /var/run/docker.sock:/var/run/docker.sock portainer/portainer
+  191  pwd
+  192  mkdir dockerfile
+  193  cd dockerfile/
+  194  vim Dockerfile
+  195  docker build . -t cacador_de_marte
+  196  vim Dockerfile
+  197  ls
+  198  docker save cacador_de_marte -o image_cacador.tar
+  199  docker run cacador_de_marte
+  200  docker ps
+  201  docker ps -all
+  202  docker run -dti cacador_de_marte
+  203  docker ps ]
+  204  docker ps 
+  205  docker ps
+  206  docker attach -ti silly_neumann 
+  207  docker attach -dti silly_neumann 
+  208  docker attach silly_neumann 
+  209  vim test.
+  210  mkdir 4Linux_InfraAGIL
+  211  mkdir 4Linux_InfraAgil
+  212  rm 4Linux_InfraAGIL/
+  213  rm -rf 4Linux_InfraAGIL/
+  214  cd 4
+  215  cd 4Linux_InfraAgil/
+  216  history > history_docker.txt

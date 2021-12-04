@@ -1,0 +1,25 @@
+#YAGO ÉSQUINES
+
+Vagrantfile: https://drive.google.com/open?id=1H1ckrAVDKyTGYkiolUgwvSR-uyTt0FW8
+
+Usuário: noturno
+Senha  : noturno
+
+##LINKS
+http://www.vagrantbox.es/
+http://agilemanifesto.org
+https://landing.google.com/sre/books/
+https://xebialabs.com/periodic-table-of-devops-tools/
+https://stackshare.io/stacks
+https://www.itcerts.com.br/devops/
+https://puppet.com/docs/puppet/6.0/modules_fundamentals.html
+https://aurelio.net/regex/
+https://aurelio.net/shell/canivete/
+https://github.com/moby/moby/blob/master/pkg/namesgenerator/names-generator.go
+https://labs.play-with-docker.com/
+https://docs.rundeck.com/docs/
+
+Image: http://montink.camisadimona.com.br/image/cache/data/camisas/marvin-guia-dos-mochileiros-da-galaxias-59f7934b1bc07-estampa-307-680x969.jpg
+
+ansible-playbook -i /roles/hosts --private-key /roles/sshkey.pem /roles/docker/tasks/main.yml
+ansible-playbook -i /roles/hosts --private-key /roles/sshkey.pem /roles/bluegreen/tasks/main.yml

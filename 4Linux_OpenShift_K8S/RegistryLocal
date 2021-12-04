@@ -1,0 +1,61 @@
+ vim /etc/docker/deamon.json
+{
+"insecure-registry":["ragnar.dexter.com.br:5000"]
+}
+
+#Criar diretórios
+mkdir /srv/registry
+mkdir /srv/registry/auth
+mkdir /srv/registry/certs
+
+#Dentro do diretório /srv/registry/certs criar os certificados
+
+openssl genrsa -out dockerCA.key 2048
+openssl req -x509 -new -nodes -key dockerCA.key -days 365 -out dockerCA.crt
+openssl genrsa -out registry.key 2048
+openssl req -new -key registry.key -out registry.csr
+openssl x509 -req -in registry.csr -CA dockerCA.crt -CAkey dockerCA.key -CAcreateserial -out registry.crt -days 365
+
+> BR
+> sao paulo
+> sp
+> dexter
+> tecnico
+> ragnar.dexter.com.br
+
+# Copiar CRT para diretório default do certificados "Ubuntu/Debian"
+cp dockerCA.crt /usr/local/share/ca-certificates/
+update-ca-certificates
+# Copiar CRT para diretório default do certificados "CentOS"
+cp dockerCA.crt /etc/pki/ca-trust/source/anchors/
+update-ca-trust
+
+#  Rodar comando abaixo para atualizar certificados
+update-ca-certificates
+apt install apache2-utils -y
+
+#Instalar o apache2-Utils para gerar o htpasswd
+apt install apache2-utils -y
+
+# Comando para criar o htpasswd com o usuário e senha para se autenticar no Registry Local
+htpasswd -Bbn user password > auth/htpasswd
+
+#dentro do diretório /srv/registry
+
+#Comando para suber o container com o Registry. OBS: Não é possivel acessar via interface grafica HTTP
+docker run -d \
+  -p 5000:5000 \
+  --restart=always \
+  --name registry \
+  -v `pwd`/auth:/auth \
+  -e "REGISTRY_AUTH=htpasswd" \
+  -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
+  -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
+  -v `pwd`/certs:/certs \
+  -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/registry.crt \
+  -e REGISTRY_HTTP_TLS_KEY=/certs/registry.key \
+  registry:2
+  
+  #Comando para listar as imagens de dentro do Registry Local
+  
+  curl https://user:password@ragnar.dexter.com.br:5000/v2/_catalog

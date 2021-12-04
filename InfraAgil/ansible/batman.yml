@@ -1,0 +1,85 @@
+---
+- name: Playbook do Bruce
+  hosts: all
+  vars:
+    username: capuz_vermelho
+  tasks:
+    - name: Verificar Memoria
+      command: free -h
+
+    - name: Instalando SL Ubuntu
+      apt: name=sl state=present update_cache=yes
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Desinstalando Pacotes Ubuntu
+      apt:
+        name: ['nginx']
+        state: absent
+        update_cache: yes
+      when: ansible_distribution == "Ubuntu" 
+
+    - name: Desinstalando Pacotes - CentOS
+      yum:
+        name: ['nginx']
+        state: absent
+      notify: restart
+      when: ansible_distribution == "CentOS"
+
+    - name: Instalando Pacotes Ubuntu
+      apt:
+        name: ['apache2','libapache2-mod-php7.0','php7.0']
+        state: present
+        update_cache: yes
+      when: ansible_distribution == "Ubuntu" 
+
+    - name: Instalando SL - CentOS
+      yum:
+        name: ['httpd','php']
+        state: present
+      notify: restart
+      when: ansible_distribution == "CentOS"
+
+    - name: Garantindo o Path
+      lineinfile:
+        path: /etc/profile
+        create: yes
+        line: "export PATH=$PATH:/usr/games"
+        state: present
+
+    - name: Copiando Arquivo
+      copy:
+        src: /etc/ansible/robin
+        dest: /tmp/dick_greayson
+
+    - name: Habilitando Modulo PHP no Ubuntu
+      command: a2enmd php7.0
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Criando o Index.php
+      lineinfile:
+        path: /var/www/html/index.php
+        create: yes
+        line: "<?php echo 'Desafio de Gotham' ?>"
+        state: present
+ 
+
+    - name: Garantindo Hosts
+      lineinfile: 
+        path: /etc/hosts
+        create: yes
+        line: "{{ item }}"
+        state: present
+      with_items:
+      - "192.168.99.10 devops.salas4linux.com.br"
+      - "192.168.99.20 docker.salas4linux.com.br"
+      - "192.168.99.30 automation.salas4linux.com.br"
+
+    - name: Criando Usuário
+      user: name={{ username }} shell=/bin/bash create_home=yes
+
+  handlers:
+    - name: restart
+      service:
+        name: nginx
+        state: restarted
+

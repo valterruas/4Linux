@@ -1,0 +1,32 @@
+Docker Compose:
+curl -L https://github.com/docker/compose/releases/download/1.21.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+
+# imagens Alpine
+etopian/alpine-php-wordpress
+yobasystems/alpine-mariadb
+
+# docker-compose.yaml
+wordpress:
+  image: wordpress
+  links:
+    - mysql_server:mysql
+  ports:
+    - 8080:80
+  environment:
+    - WORDPRESS_DB_PASSWORD=4linux
+
+mysql_server:
+  image: mysql
+  environment:
+    - MYSQL_ROOT_PASSWORD=4linux
+    - MYSQL_DATABASE=wordpress
+
+root@docker:~/wordpress# #docker run -e MYSQL_ROOT_PASSWORD=4linux -e MYSQL_DATABASE=wordpress --name dexter-mysql-server -d mysql:5.7.22
+root@docker:~/wordpress# #docker run -e WORDPRESS_DB_PASSWORD=4linux --name dexter-wordpress-server --link dexter-mysql-server:mysql -p 0.0.0.0:8080:80 -d wordpress 
+
+
+
+root@docker:~/wordpress# docker run -d --name portainer -p 8081:9000 -v /var/run/docker.sock:/var/run/docker.sock portainer/portainer
+
+
+https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Tux.svg/2000px-Tux.svg.png

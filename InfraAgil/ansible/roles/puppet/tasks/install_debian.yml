@@ -1,0 +1,17 @@
+#- name: Instalando Pacote Puppet - Debian
+#  command: dpkg -i /tmp/puppet6-release-xenial.deb
+#  ignore_errors: True
+#  when: ansible_os_family == "Debian"
+
+- name: Instalando Pacote Puppet - Debian
+  apt:
+    deb: /tmp/puppet6-release-xenial.deb
+    state: present
+
+- name: Instalando Pacote Puppet Agent
+  apt:
+    name: puppet-agent
+    state: present
+    update_cache: yes
+
+

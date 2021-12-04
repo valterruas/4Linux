@@ -1,0 +1,16 @@
+#- name: Instalando Pacote Puppet - Debian
+#  command: rpm -Uvh /tmp/puppet6-release-el-5.noarch.rpm
+#  ignore_errors: True
+#  when: ansible_os_family == "RedHat"
+
+- name: Instalando Pacote Puppet - Debian
+  yum:
+    name: /tmp/puppet6-release-el-5.noarch.rpm
+    state: present
+
+- name: Instalando Pacote Puppet Agent
+  yum:
+    name: puppet-agent
+    state: present
+
+

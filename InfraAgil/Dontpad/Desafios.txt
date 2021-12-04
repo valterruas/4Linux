@@ -1,0 +1,195 @@
+root@devops:/etc/ansible###DESAFIO 01###
+root@devops:/etc/ansible#Remover o NGINX
+root@devops:/etc/ansible#Em todas as máquinas:
+root@devops:/etc/ansible#UBUNTU: apache2, libapache2-mod-php7.0, php7.0
+root@devops:/etc/ansible#CENTOS: httpd, php
+root@devops:/etc/ansible#Habilitar Modulo PHP7.0 no UBUNTU(a2enmod php7.0)
+root@devops:/etc/ansible#Cria um index.php e enviar /var/www/html/index.php
+root@devops:/etc/ansible#Conteúdo do index.php <?php echo "Desafio de Gotham" ?>
+
+##RESOLUÇÃO
+---
+- name: Desafio1
+  hosts: all
+  tasks:
+    - name: Parar NGINX
+      service: 
+        name: nginx
+        state: stopped
+      ignore_errors: True
+#REMOVE UBUNTU
+    - name: Removendo NGINX - UBUNTU
+      apt: 
+        name: nginx*
+        state: absent
+      when: ansible_distribution == "Ubuntu"
+#REMOVE CENTOS
+    - name: Removendo NGINX - CentOS
+      yum:
+        name: nginx*
+        state: absent
+      when: ansible_distribution == "CentOS"
+#INSTALA UBUNTU
+    - name: Instalando Servidor Web - Ubuntu
+      apt:
+        name: ['apache2','libapache2-mod-php7.0','php7.0']
+        state: present
+        update_cache: yes
+      when: ansible_distribution == "Ubuntu"
+#INSTALA CENTOS
+    - name: Instalando Servidor Web - CentOS
+      yum:
+        name: ['httpd','php']
+        state: present
+      notify: httpd
+      when: ansible_distribution == "CentOS"
+#ATIVA MODULO - UBUNTU
+    - name: Ativando Modulo PHP - Ubuntu
+      command: a2enmod php7.0
+      notify: apache
+      when: ansible_distribution == "Ubuntu"
+#COPIA INDEX
+    - name: Copiando Index.php
+      copy:
+        src: /etc/ansible/index.php
+        dest: /var/www/html/index.php
+#Gerenciando Serviços
+  handlers:
+    - name: httpd
+      service:
+        name: httpd
+        state: restarted
+
+    - name: apache
+      service:
+        name: apache2
+        state: restarted
+        
+        
+        ++++++++++++++++++++++++++++++++++++++++++++++++++
+        
+      +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      
+  Link Doc. Puppet: https://puppet.com/docs/puppet/6.0/puppet_platform.html#task-383
+
+root@devops:~# #DESAFIO 2
+root@devops:~# #Criar um roles chamada puppet
+root@devops:~# #3 Arquivos (prerequisitos, install_ubuntu, install_centos)
+root@devops:~# #Acessar Doc do Puppet - Link no Dontpad
+root@devops:~# #Baixar os repositorios CentOS(.rpm) / Debian(.deb) - Prerequisitos
+root@devops:~# #Nos dois Install
+root@devops:~# #     |» Instalação dos pacotes baixados
+root@devops:~# #     |» Instalar pacote puppet-agent
+
+#RESOLUÇÃO
+→prerequisitos.yml
+- name: Baixando Repositorio - Ubuntu
+  get_url:
+    url: https://apt.puppetlabs.com/puppet6-release-xenial.deb
+    dest: /root/
+  when: ansible_distribution == "Ubuntu"
+
+- name: Baixando Repositorio - CentOS
+  get_url:
+    url: https://yum.puppet.com/puppet6/puppet6-release-el-7.noarch.rpm
+    dest: /root/
+  when: ansible_distribution == "CentOS"
+
+
+→install_ubuntu.yml
+- name: Instalando Repositorio - UBUNTU
+  apt:
+    deb: /root/puppet6-release-xenial.deb
+    state: present
+
+- name: Instalando o puppet-agent - UBUNTU
+  apt:
+    name: puppet-agent
+    state: present
+    update_cache: yes
+
+
+→install_centos.yml
+- name: Instalando Repositorio - CENTOS
+  yum:
+    name: /root/puppet6-release-el-7.noarch.rpm
+    state: present
+
+- name: Instalando puppet-agent - CENTOS
+  yum:
+    name: puppet-agent
+    state: present
+
+→main.yml
+---
+# tasks file for puppet
+- name: Roles de Instalação do Puppet-agent
+  hosts: all
+  tasks:
+    - include: prerequisitos.yml
+    - include: install_ubuntu.yml
+      when: ansible_distribution == "Ubuntu"
+    - include: install_centos.yml
+      when: ansible_distribution == "CentOS"
+      
+      
+      
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#DESAFIO 3
+
+-MODULO DOCKER
+-Fazer um modulo chamado DOCKER
+-E criar o arquivo 'modules/docker/manifests/init.pp' seguindo as informações da Documentação do DOCKER (https://docs.docker.com/install/)
+-Fazer a init.pp tanto para Like Debian quanto para Like Red Hat
+-Porem a classe só deve rodar na máquina docker.salas4linux.com.br (arquivo prodution/site.pp)
+
+
+##RESOLUÇÃO 
+class docker {
+	case $::osfamily{
+		"redhat":{
+$pacotes = ['yum-utils','device-mapper-persistent-data','lvm2']
+$repositorio = "/bin/yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo"
+
+		}
+	
+		"debian":{
+
+$distro_name = $facts['os']['distro']['codename']
+$pacotes = ['apt-transport-https','ca-certificates','curl','software-properties-common']
+$repositorio = "/usr/bin/curl -fsSL https://download.docker.com/linux/ubuntu/gpg | /usr/bin/apt-key add - ; /usr/bin/add-apt-repository 'deb [arch=amd64] https://download.docker.com/linux/ubuntu $distro_name stable' ; /usr/bin/apt update" 
+
+		}
+	}
+
+	package{$pacotes:
+		ensure => present,
+	}	
+	exec{"Adicionando Repositorio":
+		command => $repositorio
+	}
+	package{'docker-ce':
+		ensure => present,
+	}
+	service{'docker':
+		ensure => running,
+		enable => true,
+		require => Package['docker-ce']	
+	}
+}
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#Criar um Job - Nome: Jenkins
+#Steps - https://wiki.jenkins.io/display/JENKINS/Installing+Jenkins+on+Red+Hat+distributions
+#Nodes - rundeck do node Automation para root
+
+Step 1: yum install wget -y
+Step 2: wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat-stable/jenkins.repo
+Step 3: rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key
+Step 4: yum install jenkins -y
+Step 5: yum install java -y

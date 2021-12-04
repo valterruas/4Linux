@@ -1,0 +1,27 @@
+---
+- name: Instalando Rundeck
+  hosts: automation
+  tasks:
+    - name: Add Repositorio Rundeck
+      yum:
+        name: http://repo.rundeck.org/latest.rpm
+        state: present
+      register: result
+
+    - name: Mostrando resultado
+      debug
+        var: result.stdout
+
+    - name: Instalando Rundeck
+      yum:
+        name: ['java-1.8.0','rundeck']
+        state: present
+
+###ADD NODES - /var/rundeck/projects/Luthor/etc/resources.xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project>
+  <node name="192.168.99.30" deion="Rundeck server node" tags="" hostname="192.168.99.30" osArch="amd64" osFamily="unix" osName="Linux" osVersion="3.10.0-693.21.1.el7.x86_64" username="rundeck"/>
+  <node name="192.168.99.20" deion="Rundeck server node" tags="" hostname="192.168.99.20" osArch="amd64" osFamily="unix" osName="Linux" osVersion="3.10.0-693.21.1.el7.x86_64" username="root"/>
+  <node name="192.168.99.10" deion="Rundeck server node" tags="" hostname="192.168.99.10" osArch="amd64" osFamily="unix" osName="Linux" osVersion="3.10.0-693.21.1.el7.x86_64" username="root"/>
+</project>

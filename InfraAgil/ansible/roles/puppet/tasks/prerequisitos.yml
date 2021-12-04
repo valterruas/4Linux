@@ -1,0 +1,12 @@
+- name: Adicionar uma imagem - Debian
+  get_url:
+    url: https://apt.puppetlabs.com/puppet6-release-xenial.deb
+    dest: /tmp/puppet6-release-xenial.deb
+  when: ansible_os_family == "Debian"
+
+- name: Adicionar uma imagem - CentOS
+  get_url:
+    url: https://yum.puppet.com/puppet6/puppet6-release-el-5.noarch.rpm
+    dest: /tmp/puppet6-release-el-5.noarch.rpm
+  when: ansible_os_family == "RedHat"
+

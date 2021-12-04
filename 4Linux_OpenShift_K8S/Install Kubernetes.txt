@@ -1,0 +1,362 @@
+#Rodar os comandos abaixo em todos os servidores que farão parte do Cluster.
+
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kube*
+EOF
+
+# Set SELinux in permissive mode (effectively disabling it)
+setenforce 0
+sed -i 's/^SELINUX=enforcing$/SELINUX=disabled/' /etc/selinux/config
+
+yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+
+systemctl enable --now kubelet
+
+swapoff -a 
+# Editar o arquivo FSTAB e comentar a linha do Swap
+vim /etc/fstab
+
+
+
+# Rodar o comando abaixo para reiniciar o servidor
+init 6
+# Rodar o comando abaixo para verificar se o SELinux foi desabilitado, precisa retornar a msg "setenforce: SELinux is disabled";
+setenforce 0
+
+# Rodar os comandos abaixo para habilitar o modo de roteamento em os servidores. Rodar em todos os nós do cluster.
+
+cat <<EOF >  /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+sysctl --system
+
+
+# Rodar o comando abaixo para atualizar os pacotes para as ultimas versões.
+yum update -y
+
+# Rodar o comando abaixo para baixar as imagens padrão do Kubernetes
+systemctl start docker
+systemctl enable docker
+kubeadm config images pull
+
+# Rodar os comandos abaixo para parar e desativar os firewall nativos, rodar em todos os nós
+
+systemctl stop firewalld
+systemctl disable firewalld
+
+# Seguir a documentação abaixo para habilitar o auto complete do comando kubectl
+https://kubernetes.io/docs/tasks/tools/install-kubectl/#enabling-shell-autocompletion
+
+# Rodar o comando abaixo apenas na maquina "Master"
+# pod-network-cidr define qual a rede dos pods
+# apiserver-advertise-address - caso tenha mais de uma placa de rede, definir o IP da placa de rede que será utilizada como principal
+kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=192.168.1.10
+
+# Será gerado um comando igual ao debaixo, copiar e executar o comando nos outros nós do Cluster
+# Exemplo: kubeadm join 192.168.1.10:6443 --token 1gh0g4.es1fvjoq2nbpkt0b --discovery-token-ca-cert-hash sha256:cdf08a112f5da4044e3114b089ac5752fb64b3f3e2d113ceb1ff1aeaaf068290
+
+#Rodar o comando abaixo para dar permissão de gerenciar o cluster pela maquina Master
+# export KUBECONFIG=/etc/kubernetes/admin.conf
+echo "export KUBECONFIG=/etc/kubernetes/admin.conf" >> /etc/profile
+
+#Ou seguindo a documentação rodar os comandos abaixo que terá o mesmo efeito
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# Comando para fazer o deploy do serviço do Weave de acordo com a versão do Docker instalado
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+# Rodar os comando abaixo para acompanhar o status da criação dos PODs do Weave, e ver se os nodes do Cluster estão Ready
+kubectl get nodes
+kubectl get pods --all-namespaces
+
+# O Token para adicionar novos Nodes do Cluster expira em 24 horas. Caso seja necessário rodas os comandos abaixo para gerar novos token
+
+$token1=kubeadm token create
+$token2=openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | \
+openssl dgst -sha256 -hex | sed 's/^.* //'
+kubeadm join 192.168.1.10:6443 --token $token1 --discovery-token-ca-cert-hash sha256:$token2
+
+# Comando para rodar PODs no node Master, pq por default no node Master não roda PODs. Precisa retornar string "node/master.kubernetes.os untainted" no node Master e os nodes como "not found"
+kubectl taint nodes --all node-role.kubernetes.io/master-
+
+# Comando para mudar a role do nó do Cluster para Woker
+kubectl label node node1.kubernetes.os node-role.kubernetes.io/worker=worker
+kubectl label node node2.kubernetes.os node-role.kubernetes.io/worker=worker
+
+####
+# Comando para deletar a maquina do Cluster (rodar os dois comandos abaixo no master).
+kubectl drain node1.kubernetes.os --delete-local-data --force --ignore-daemonsets
+kubectl delete node node1.kubernetes.os
+
+# Ir no node que foi removido e rodar o comando abaixo, caso não faça isso o node será reingressado automaticamente no cluster novamente.
+kubeadm reset
+y
+
+# Na saida do comando acima irá exibir um comando de exemplo do IPTABLES, copie esse comando e rode no node que está sendo excluido para remover as rotas do node.
+iptables -F && iptables -t nat -F && iptables -t mangle -F && iptables -X
+####
+
+# Rodar o comando abaixo para habilitar a interface grafica via https
+kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/master/aio/deploy/recommended/kubernetes-dashboard.yaml
+kubectl proxy --address=192.168.1.10 &
+# No comando acima irá aparacer "Starting to serve on 192.168.1.10:8001" pode dar ENTER
+# Rodar o comando abaixo para editar o serviço "kubernetes-dashboard"
+kubectl -n kube-system edit service kubernetes-dashboard
+# Alterar a linha "type: ClusterIP" para "type: NodePort" salva e sai do arquivo
+
+#Rodar o comando abaixo para identificar a porta que foi gerada para o acesso via https
+kubectl -n kube-system get service
+>NAME                   TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)         AGE
+>kube-dns               ClusterIP   10.96.0.10       <none>        53/UDP,53/TCP   22h
+>kubernetes-dashboard   NodePort    10.102.216.252   <none>        443:30114/TCP   7m54s
+
+#Acessar via browser usando a porta do pods listado acima
+https:\\192.168.1.10:30114
+
+# Criar um arquivo para criar um usuário de serviço para gerar o token para acessar a inteface https do K8S
+vim dashboard-adminuser.yaml
+## Contudo do arquivo
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+ name: admin-user
+ namespace: kube-system
+ 
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+ name: admin-user
+roleRef:
+ apiGroup: rbac.authorization.k8s.io
+ kind: ClusterRole
+ name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: admin-user
+  namespace: kube-system
+# Fim do conteudo do arquivo
+
+# Rodar o comando abaixo para aplicar o arquivo YAML criado acima:
+kubectl create -f dashboard-adminuser.yaml
+
+# Rodar o comando abaixo para ver a chave gerada para acesso da interface grafica do K8S
+kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user | awk '{print $1}')
+
+# Ele irá trazer as informações abaixo:
+>Name:         admin-user-token-f5v5p
+>Namespace:    kube-system
+>Labels:       <none>
+>Annotations:  kubernetes.io/service-account.name: admin-user
+>              kubernetes.io/service-account.uid: c29ca660-2fdc-11e9-a5a4-52540075dc3d>
+>
+>Type:  kubernetes.io/service-account-token
+>
+>Data
+>====
+>token:      eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi11c2VyLXRva2VuLWY1djVwIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImFkbWluLXVzZXIiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiJjMjljYTY2MC0yZmRjLTExZTktYTVhNC01MjU0MDA3NWRjM2QiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6a3ViZS1zeXN0ZW06YWRtaW4tdXNlciJ9.QZfyweVuv7jQCgOBLURHZxoqJxzUk8fi1mDSJnkU06YiezJHhR1KAj4egY3nw6Jp_fIa3RVWkE_Iper3T0DArLAtf1x2u8RFeY_myJkP24mZv2nNHYTMXGT0OM5GI4zUZKInzNyYtOAIxp6KCjTizGoGfOmz5moC1xnWH0QpJ6H7Xk6AReVNk5HjBdNGBiqgregRWT5dSYiOA3IT_3_cEKrWKBA_JKYqCTw59fmPCpE_k_WuAIIzGZGxO5XjE_ht6EPV2aXZQPxcJY8nwu3XjzOFXoWHtW9uIuqDbUfSE6lioEGr3gNmhtaNfKWqEBuhlXfFyhX9d5hUnLKW3vVSdQ
+>ca.crt:     1025 bytes
+>namespace:  11 bytes
+
+# Agora basta você acessar a URL com o token acima
+
+# Criar uma namespace de sua escolha
+kubectl create namespace dev
+
+# Criar um deployment no namespace criado
+kubectl create deployment kubernetes-test --image=gcr.io/google-samples/kubernetes-bootcamp:v1 -n dev
+
+# Consultar a criação do pod do comando acima
+kubectl get pods -n dev
+
+# Expor a porta 8080 do deployment feito. Essa é porta do Container
+kubectl expose deployment/kubernetes-test --type="NodePort" --port 8080 -n dev
+
+#  Rodar o comando abaixo para ver qual é a porta que foi exposta pelo cluster
+kubectl get services -n dev
+>NAME              TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+>kubernetes-test   NodePort   10.103.60.121   <none>        8080:32432/TCP   110s
+
+#Acessar via browser o serviço do pod na porta 32432 que foi obtido pelo comando acima, deverá aparecer a msg "Hello Kubernetes bootcamp! | Running on: kubernetes-test-66647f8868-9wcp5 | v=1"
+
+# Comando para escalar o seus pods
+kubectl scale deployments/kubernetes-test --replicas=4 -n dev
+
+# Comando para consultar o status dos pods do namespace
+kubectl get pods -n dev
+
+# Comando para consultar onde estão cada um de seus pods nos respectivos nós do cluster
+kubectl get pods -n dev -o wide
+
+# Comando para pegar o nome do container dentro do POD
+kubectl describe pods kubernetes-test-66647f8868-7msf8 -n dev
+
+>Containers:
+>  kubernetes-bootcamp:
+>    Container ID:   docker://c2355a620d9cde46d5eda3c0c0622669f19d176a47d15f071a720cd2e290bb03
+>    Image:          gcr.io/google-samples/kubernetes-bootcamp:v1
+
+  
+#Comando para atualizar a imagem do seu deploy
+kubectl set image deployment/kubernetes-test kubernetes-bootcamp=jocatalin/kubernetes-bootcamp:v2 -n dev
+
+# Criando uma atualização de uma imagem com problema para ver que ele não rollouta sem o heath check
+kubectl set image deployment/kubernetes-test kubernetes-bootcamp=gcr.io/google-samples/kubernetes-bootcamp:v10 -n dev
+
+# Se você rodar o comando abaixo você verifcará que está dando erro de imagem
+kubectl get pods -n dev
+
+>NAME                               READY   STATUS             RESTARTS   AGE
+>kubernetes-test-59f7f6dd88-2qh8j   0/1     ImagePullBackOff   0          88s
+>kubernetes-test-59f7f6dd88-48p68   0/1     ErrImagePull       0          88s
+>kubernetes-test-6fd687565d-4kt4r   1/1     Running            0          10m
+>kubernetes-test-6fd687565d-4sjn2   1/1     Running            0          10m
+>kubernetes-test-6fd687565d-6mzxw   1/1     Running            0          10m
+
+# Rodando o comando abaixo e faz rollbakup para a ultima versão deployada
+kubectl rollout undo deployments/kubernetes-test -n dev
+
+# Criar o arquivo aplicacao.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: site-ivar
+spec:
+ 
+ selector:
+  matchLabels:
+   aplicacao: site-ivar
+ 
+ replicas: 2 
+ 
+ template:
+   metadata:
+     labels:
+       aplicacao: site-ivar 
+   spec:
+    containers:
+     - name: site-ivar 
+       image: gpolicante/ivar-site
+       ports:
+       - containerPort: 80 
+#Fim do arquivo
+
+# Rodar o comando abaixo para fazer o deploy
+kubectl create -f aplicacao.yaml -n dev
+kubectl expose deployment/site-ivar -n dev
+# Editar o serviço e mudar o type ClusterIP para NodePort para e salvar, dar um get services para ver a porta exposta
+
+
+
+
+
+## Exemplo de YAML para ingress, nome do arquivo --ingress-dexter.yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-redirect
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  backend:
+    serviceName: default-http-backend
+    servicePort: 80
+  rules:
+  - host: dexter.com.br
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: aplicacao-wordpress
+          servicePort: 80
+#Fim do arquivo
+
+# Para aplicar o ingress rodar o comando abaixo
+kubectl create -f ingress-dexter.yaml -n dev
+
+# Rodr o comando abaixo para ver o nome do ingress criado
+kubectl get ing -n dev
+
+# Para remover o ingress, rodar o comando abaixo
+kubectl delete ingresses ingress-redirect -n dev
+
+
+
+
+###
+# Configurando NFS para o Cluster para VP
+###
+
+yum install nfs-utils -y
+vim /etc/exports
+# Adicionar a linha abaixo no arquivo
+mkdir /srv/data
+chmod 777 /srv/data
+/srv/data 192.168.1.0/24(rw,no_root_squash,no_subtree_check,sync)
+systemctl restart nfs
+showmount -e
+
+#Criar o arquivo nfs.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+ name: nfs 
+spec:
+ capacity:
+  storage: 1Mi
+ accessModes:
+  - ReadWriteMany
+ nfs:
+  server: 192.168.1.10
+  path: "/srv/data"
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+     storage: 1Mi
+## Fim do arquivo
+
+# Rodar o comando abaixo para criar o NFS para os pods, observar que se faz necessário informar qual namespace você irá criar
+kubectl create -f nfs.yaml -n dev
+
+# Consultar o persistente volume claim
+kubectl get pvc -n dev
+>NAME   STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+>nfs    Bound    nfs      1Mi        RWX                           63s
+
+# Consultar o persistente volume 
+kubectl get pv -n dev
+>NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM     STORAGECLASS   REASON   AGE
+>nfs    1Mi        RWX            Retain           Bound    dev/nfs                           68s
+
+# Agora vamos subir uma aplicação usando o PVC
+kubectl create -f /vagrant/kubernetes/new/aplicacao2.yaml -n dev
+
+# Ver a porta que subiu no services e Criar o arquivo html no NFS para exibir na aplicação que subiu
+vim /srv/data/index.html
+<marquee>
+<h1>
+MINHA APLICAÇÃO DEVOPS EM KUBERNETES - VALTER 
+</h1>
+</marquee>
+
+#Acessar via browser a sua aplicação

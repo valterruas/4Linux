@@ -1,0 +1,20 @@
+#Documentação Ansible: https://docs.ansible.com/ansible/latest/
+
+#hostsFile
+[devops]
+192.168.99.10
+
+[docker]
+192.168.99.20
+
+[automation]
+192.168.99.30
+
+#Teste de Conexão
+ansible 'localhost,' -e 'ansible_connection=local' -m ping
+#ping automatico com todo inventário
+ansible all -m ping
+#Ping informando o nome do arquivo de inventario [-i]
+ansible -i hosts all -m ping
+#Passando comando pelo ansible 
+ansible -i hosts all -m command -a 'free -h'

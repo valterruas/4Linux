@@ -1,0 +1,7 @@
+if [ $(($RANDOM%2)) == 0 ]; then
+	echo "Funcionou"
+    exit 0
+else
+	echo "Falhou"
+    exit 1
+fi

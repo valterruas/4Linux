@@ -1,0 +1,1 @@
+cowsay -t tux $(fortune)

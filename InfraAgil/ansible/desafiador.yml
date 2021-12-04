@@ -1,0 +1,59 @@
+---
+- name: Playbook Desafio
+  hosts: all
+  tasks:
+    - name: Parar NGINX
+      service:
+        name: nginx
+        state: stopped
+      ignore_errors: True
+
+    - name: Desinstalando Pacotes Ubuntu
+      apt:
+        name: nginx*
+        state: absent
+        update_cache: yes
+      when: ansible_distribution == "Ubuntu" 
+
+    - name: Desinstalando Pacotes - CentOS
+      yum:
+        name: nginx*
+        state: absent
+      when: ansible_distribution == "CentOS"
+
+    - name: Instalando Pacotes Web - Ubuntu
+      apt:
+        name: ['apache2','libapache2-mod-php7.0','php7.0']
+        state: present
+        update_cache: yes
+      when: ansible_distribution == "Ubuntu"
+
+
+    - name: Instalando Pacotes Web - CentOS
+      yum:
+        name: ['httpd','php']
+        state: present
+      notify: httpd
+      when: ansible_distribution == "CentOS"
+
+    - name: Habilitando Modulo PHP no Ubuntu
+      command: a2enmod php7.0
+      notify: apache
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Copiando o Index.php
+      copy:
+        src: /etc/ansible/index.php
+        dest: /var/www/html/index.php
+ 
+  handlers:
+    - name: httpd
+      service:
+        name: httpd
+        state: restarted
+
+    - name: apache
+      service: 
+        name: apache2
+        state: restarted
+

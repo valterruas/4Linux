@@ -1,0 +1,19 @@
+---
+- name: Instalando GITLAB
+  hosts: devops
+  tasks:
+    - name: Instalando pacotes necessários
+      apt:
+        name: ['curl','openssh-server','ca-certificates']
+        state: present
+        update-cache: yes
+
+    - name: Executando  - GITLAB
+      shell: curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/.deb.sh | bash
+      register: comando
+
+    - name: Instalando Pacote - GITLAB
+      apt:
+        name: gitlab-ce
+        state: present
+      when: comando.rc == 0
